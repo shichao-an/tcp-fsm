@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals, absolute_import
 """An implementation of the Finite State Machine.
 
 This module can be used to build and describe finite-state automata.
@@ -33,8 +35,6 @@ Overview of classes:
         a value assigned to the transition that the input value caused.
     http://en.wikipedia.org/wiki/Mealy_machine
 """
-
-__version__ = '0.01'
 
 MACHINES = dict()
 

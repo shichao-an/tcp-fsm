@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function, unicode_literals, absolute_import
+import sys
 from fsm import MealyMachine, State, TransitionError
 
 _TCP_STATES = [
@@ -38,6 +40,10 @@ _ = {
 }
 
 
+class InputError(Exception):
+    pass
+
+
 class TCPMachine(MealyMachine):
     def transition(self, input_value):
         """Transition to the next state."""
@@ -48,9 +54,9 @@ class TCPMachine(MealyMachine):
         destination_state = current.get(input_value,
                                         current.default_transition)
         if destination_state is None:
-            raise TransitionError('Cannot transition from state %r'
-                                  ' on input %r.' % (current.name,
-                                                     input_value))
+            raise TransitionError('Cannot transition from state "%s"'
+                                  ' on event "%s"' % (current.name,
+                                                      input_value))
         else:
             self.current_state = destination_state
         # Added associated variable
@@ -65,6 +71,7 @@ class TCPMachine(MealyMachine):
 TCP_STATES = {state: State(state) for state in _TCP_STATES}
 TCP_MACHINE = TCPMachine('TCP')
 TCP_MACHINE.init_state = TCP_STATES['CLOSED']
+TCP_MACHINE.current_state = TCP_MACHINE.init_state
 
 # Setup FSM
 TCP_STATES['CLOSED'][('PASSIVE', _['none'])] = TCP_STATES['LISTEN']
@@ -87,3 +94,54 @@ TCP_STATES['CLOSING'][('ACK', _['none'])] = TCP_STATES['TIME_WAIT']
 TCP_STATES['TIME_WAIT'][('TIMEOUT', _['none'])] = TCP_STATES['CLOSED']
 TCP_STATES['CLOSE_WAIT'][('CLOSE'), _['fin']] = TCP_STATES['LAST_ACK']
 TCP_STATES['LAST_ACK'][('ACK', _['none'])] = TCP_STATES['CLOSED']
+
+TCP_STATES['ESTABLISHED'].received_count = 0
+TCP_STATES['ESTABLISHED'].sent_count = 0
+
+
+def parse_event(event):
+    """Parse event from stdin, process and return message"""
+    event = event.strip()
+    if not event:
+        return
+    if event not in _TCP_EVENTS:
+        raise InputError('unexpected event name "%s"' % event)
+    else:
+        tcp = TCP_MACHINE
+        output = tcp.output(event)
+        tcp.transition(event)
+        if tcp.current_state.name == 'ESTABLISHED':
+            if event == 'RDATA':
+                return 'DATA received %d' % tcp.current_state.received_count
+            if event == 'SDATA':
+                return 'DATA sent %d' % tcp.current_state.sent_count
+        message = 'event "%s" received, output is "%s", current state is "%s"'
+        message %= (event, output, tcp.current_state.name)
+        return message
+
+
+def print_error_message(e):
+    print('%s: %s' % (e.__class__.__name__, e.message))
+
+
+def main():
+    """Interactive interpreter that reads event from stdin"""
+    while True:
+        try:
+            event = sys.stdin.readline()
+            if not event:
+                # Break on EOF
+                break
+            message = parse_event(event)
+            if message is not None:
+                print(message)
+        except KeyboardInterrupt:
+            break
+        except InputError, e:
+            print_error_message(e)
+        except TransitionError as e:
+            print_error_message(e)
+
+
+if __name__ == '__main__':
+    main()
