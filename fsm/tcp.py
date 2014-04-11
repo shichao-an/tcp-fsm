@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function, unicode_literals, absolute_import
 import sys
-from fsm import MealyMachine, State, TransitionError
+from fsm.fsm import MealyMachine, State, TransitionError
+
+
+__all__ = ['TCP_STATES', 'TCPMachine', 'TCP_EVENTS']
+
 
 _TCP_STATES = [
     'CLOSED',
@@ -17,7 +21,7 @@ _TCP_STATES = [
     'LAST_ACK',
 ]
 
-_TCP_EVENTS = [
+TCP_EVENTS = [
     'PASSIVE',
     'ACTIVE',
     'SYN',
@@ -104,7 +108,7 @@ def parse_event(event):
     event = event.strip()
     if not event:
         return
-    if event not in _TCP_EVENTS:
+    if event not in TCP_EVENTS:
         raise InputError('unexpected event name "%s"' % event)
     else:
         tcp = TCP_MACHINE

@@ -1,4 +1,5 @@
 from fsm import tcp
 
 
-tcp.main()
+if __name__ == '__main__':
+    tcp.main()
